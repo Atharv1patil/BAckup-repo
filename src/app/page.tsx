@@ -1,11 +1,15 @@
 import React from 'react'
 import Landing from './components/Landing'
 import Student from './components/Student'
+import App from 'next/app'
+import Student_dashboard from './components/Student_dashboard'
+import Dashboard from './components/dashboard'
 
 function page() {
   return (
-   <Landing />
+  //  <Landing />
     // <Student />
+    <Dashboard />
   )
 }
 
