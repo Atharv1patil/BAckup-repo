@@ -26,11 +26,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "./use-toast"
+import { Download, Lock, Unlock } from "lucide-react"
+
 
 interface StudentProfileProps {
   profileData: ProfileDataType
   setProfileData: (data: ProfileDataType) => void
 }
+
 
 // Extended student data with more fields
 interface StudentData extends ProfileDataType {
@@ -39,10 +42,13 @@ interface StudentData extends ProfileDataType {
   enrollmentDate: string
   expectedGraduation: string
   placementStatus: string
+  blocked?: boolean
 }
+
 
 // API URL - replace with your actual backend URL
 const API_URL = "http://localhost:5000"
+
 
 export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, setProfileData }) => {
   const [students, setStudents] = useState<StudentData[]>([])
@@ -53,6 +59,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
   const [selectedStudent, setSelectedStudent] = useState<StudentData | null>(null)
   const [isAddingStudent, setIsAddingStudent] = useState(false)
   const { toast } = useToast()
+
 
   const [newStudent, setNewStudent] = useState<Partial<StudentData>>({
     name: "",
@@ -68,7 +75,9 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
     enrollmentDate: new Date().toISOString().split("T")[0],
     expectedGraduation: "",
     placementStatus: "Not Started",
+    blocked: false,
   })
+
 
   // Fetch students from API
   useEffect(() => {
@@ -77,9 +86,11 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
         setLoading(true)
         const response = await fetch(`${API_URL}/students`)
 
+
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`)
         }
+
 
         const data = await response.json()
         setStudents(data)
@@ -97,8 +108,10 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
       }
     }
 
+
     fetchStudents()
   }, [toast])
+
 
   // Filter students based on search term and department
   const filteredStudents = students.filter((student) => {
@@ -107,16 +120,20 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
       student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.id.toString().includes(searchTerm)
 
+
     const matchesDepartment =
       departmentFilter === "all" || student.department.toLowerCase().includes(departmentFilter.toLowerCase())
 
+
     return matchesSearch && matchesDepartment
   })
+
 
   // Handle student selection
   const handleSelectStudent = (student: StudentData) => {
     setSelectedStudent(student)
   }
+
 
   // Handle student update
   const handleUpdateStudent = async (updatedStudent: StudentData) => {
@@ -130,13 +147,16 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
         body: JSON.stringify(updatedStudent),
       })
 
+
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
       }
 
+
       // Update local state
       setStudents(students.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)))
       setSelectedStudent(null)
+
 
       toast({
         title: "Success",
@@ -154,6 +174,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
     }
   }
 
+
   // Handle student deletion
   const handleDeleteStudent = async (id: string) => {
     try {
@@ -162,15 +183,18 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
         method: "DELETE",
       })
 
+
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
       }
+
 
       // Update local state
       setStudents(students.filter((s) => s.id !== id))
       if (selectedStudent?.id === id) {
         setSelectedStudent(null)
       }
+
 
       toast({
         title: "Success",
@@ -188,6 +212,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
     }
   }
 
+
   // Handle adding a new student
   const handleAddStudent = async () => {
     try {
@@ -200,11 +225,14 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
         body: JSON.stringify(newStudent),
       })
 
+
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
       }
 
+
       const result = await response.json()
+
 
       // Create a new student object with the returned ID
       const studentToAdd = {
@@ -212,9 +240,11 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
         id: result.id,
       } as StudentData
 
+
       // Update local state
       setStudents([...students, studentToAdd])
       setIsAddingStudent(false)
+
 
       // Reset form
       setNewStudent({
@@ -231,7 +261,9 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
         enrollmentDate: new Date().toISOString().split("T")[0],
         expectedGraduation: "",
         placementStatus: "Not Started",
+        blocked: false,
       })
+
 
       toast({
         title: "Success",
@@ -249,183 +281,288 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
     }
   }
 
+
+  // Handle blocking/unblocking a student
+  const handleToggleBlockStudent = async (student: StudentData) => {
+    try {
+      setLoading(true)
+      const updatedStudent = { ...student, blocked: !student.blocked }
+
+
+      const response = await fetch(`${API_URL}/students/${student.id}/block`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ blocked: !student.blocked }),
+      })
+
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`)
+      }
+
+
+      // Update local state
+      setStudents(students.map((s) => (s.id === student.id ? updatedStudent : s)))
+
+
+      if (selectedStudent?.id === student.id) {
+        setSelectedStudent(updatedStudent)
+      }
+
+
+      toast({
+        title: "Success",
+        description: `Student ${updatedStudent.blocked ? "blocked" : "unblocked"} successfully`,
+      })
+    } catch (err) {
+      console.error("Error toggling student block status:", err)
+      toast({
+        title: "Error",
+        description: "Failed to update student block status. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+
+  // Export student data to Excel
+  const exportToExcel = () => {
+    try {
+      // Create CSV content
+      const headers = ["Name", "Department", "Year", "CGPA", "Status", "Placement Status"]
+      let csvContent = headers.join(",") + "\n"
+
+
+      filteredStudents.forEach((student) => {
+        const row = [
+          `"${student.name}"`, // Wrap in quotes to handle names with commas
+          `"${student.department}"`,
+          `"${student.year}"`,
+          student.cgpa,
+          `"${student.status}"`,
+          `"${student.placementStatus}"`,
+        ]
+        csvContent += row.join(",") + "\n"
+      })
+
+
+      // Create a Blob with the CSV content
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+
+
+      // Create a download link and trigger the download
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", `student_data_${new Date().toISOString().split("T")[0]}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+
+      toast({
+        title: "Success",
+        description: "Student data exported successfully",
+      })
+    } catch (err) {
+      console.error("Error exporting data:", err)
+      toast({
+        title: "Error",
+        description: "Failed to export student data. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+
   return (
     <div className="p-6">
       <Card className="max-w-7xl mx-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Student Management</h2>
-            <Dialog open={isAddingStudent} onOpenChange={setIsAddingStudent}>
-              <DialogTrigger asChild>
-                <Button className="!rounded-button">
-                  <i className="fa-solid fa-plus mr-2"></i>
-                  Add New Student
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Student</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="new-name" className="text-right">
-                      Name
-                    </Label>
-                    <Input
-                      id="new-name"
-                      value={newStudent.name}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          name: e.target.value,
-                        })
-                      }
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="new-email" className="text-right">
-                      Email
-                    </Label>
-                    <Input
-                      id="new-email"
-                      type="email"
-                      value={newStudent.email}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          email: e.target.value,
-                        })
-                      }
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="new-department" className="text-right">
-                      Department
-                    </Label>
-                    <Select
-                      value={newStudent.department}
-                      onValueChange={(value) =>
-                        setNewStudent({
-                          ...newStudent,
-                          department: value,
-                        })
-                      }
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select Department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Computer Science">Computer Science</SelectItem>
-                        <SelectItem value="Electrical Engineering">Electrical Engineering</SelectItem>
-                        <SelectItem value="Mechanical Engineering">Mechanical Engineering</SelectItem>
-                        <SelectItem value="Business Administration">Business Administration</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="new-year" className="text-right">
-                      Year
-                    </Label>
-                    <Select
-                      value={newStudent.year}
-                      onValueChange={(value) =>
-                        setNewStudent({
-                          ...newStudent,
-                          year: value,
-                        })
-                      }
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select Year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1st">1st Year</SelectItem>
-                        <SelectItem value="2nd">2nd Year</SelectItem>
-                        <SelectItem value="3rd">3rd Year</SelectItem>
-                        <SelectItem value="4th">4th Year</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="new-cgpa" className="text-right">
-                      CGPA
-                    </Label>
-                    <Input
-                      id="new-cgpa"
-                      value={newStudent.cgpa}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          cgpa: e.target.value,
-                        })
-                      }
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="new-phone" className="text-right">
-                      Phone
-                    </Label>
-                    <Input
-                      id="new-phone"
-                      value={newStudent.phone}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          phone: e.target.value,
-                        })
-                      }
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="new-enrollment" className="text-right">
-                      Enrollment Date
-                    </Label>
-                    <Input
-                      id="new-enrollment"
-                      type="date"
-                      value={newStudent.enrollmentDate}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          enrollmentDate: e.target.value,
-                        })
-                      }
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="new-graduation" className="text-right">
-                      Expected Graduation
-                    </Label>
-                    <Input
-                      id="new-graduation"
-                      type="date"
-                      value={newStudent.expectedGraduation}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          expectedGraduation: e.target.value,
-                        })
-                      }
-                      className="col-span-3"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddingStudent(false)}>
-                    Cancel
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex items-center gap-2" onClick={exportToExcel}>
+                <Download size={16} />
+                Export to Excel
+              </Button>
+              <Dialog open={isAddingStudent} onOpenChange={setIsAddingStudent}>
+                <DialogTrigger asChild>
+                  <Button className="!rounded-button">
+                    <i className="fa-solid fa-plus mr-2"></i>
+                    Add New Student
                   </Button>
-                  <Button onClick={handleAddStudent} disabled={loading}>
-                    {loading ? "Adding..." : "Add Student"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Student</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="new-name" className="text-right">
+                        Name
+                      </Label>
+                      <Input
+                        id="new-name"
+                        value={newStudent.name}
+                        onChange={(e) =>
+                          setNewStudent({
+                            ...newStudent,
+                            name: e.target.value,
+                          })
+                        }
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="new-email" className="text-right">
+                        Email
+                      </Label>
+                      <Input
+                        id="new-email"
+                        type="email"
+                        value={newStudent.email}
+                        onChange={(e) =>
+                          setNewStudent({
+                            ...newStudent,
+                            email: e.target.value,
+                          })
+                        }
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="new-department" className="text-right">
+                        Department
+                      </Label>
+                      <Select
+                        value={newStudent.department}
+                        onValueChange={(value) =>
+                          setNewStudent({
+                            ...newStudent,
+                            department: value,
+                          })
+                        }
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select Department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Computer Science">Computer Science</SelectItem>
+                          <SelectItem value="Electrical Engineering">Electrical Engineering</SelectItem>
+                          <SelectItem value="Mechanical Engineering">Mechanical Engineering</SelectItem>
+                          <SelectItem value="Business Administration">Business Administration</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="new-year" className="text-right">
+                        Year
+                      </Label>
+                      <Select
+                        value={newStudent.year}
+                        onValueChange={(value) =>
+                          setNewStudent({
+                            ...newStudent,
+                            year: value,
+                          })
+                        }
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1st">1st Year</SelectItem>
+                          <SelectItem value="2nd">2nd Year</SelectItem>
+                          <SelectItem value="3rd">3rd Year</SelectItem>
+                          <SelectItem value="4th">4th Year</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="new-cgpa" className="text-right">
+                        CGPA
+                      </Label>
+                      <Input
+                        id="new-cgpa"
+                        value={newStudent.cgpa}
+                        onChange={(e) =>
+                          setNewStudent({
+                            ...newStudent,
+                            cgpa: e.target.value,
+                          })
+                        }
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="new-phone" className="text-right">
+                        Phone
+                      </Label>
+                      <Input
+                        id="new-phone"
+                        value={newStudent.phone}
+                        onChange={(e) =>
+                          setNewStudent({
+                            ...newStudent,
+                            phone: e.target.value,
+                          })
+                        }
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="new-enrollment" className="text-right">
+                        Enrollment Date
+                      </Label>
+                      <Input
+                        id="new-enrollment"
+                        type="date"
+                        value={newStudent.enrollmentDate}
+                        onChange={(e) =>
+                          setNewStudent({
+                            ...newStudent,
+                            enrollmentDate: e.target.value,
+                          })
+                        }
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="new-graduation" className="text-right">
+                        Expected Graduation
+                      </Label>
+                      <Input
+                        id="new-graduation"
+                        type="date"
+                        value={newStudent.expectedGraduation}
+                        onChange={(e) =>
+                          setNewStudent({
+                            ...newStudent,
+                            expectedGraduation: e.target.value,
+                          })
+                        }
+                        className="col-span-3"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddingStudent(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddStudent} disabled={loading}>
+                      {loading ? "Adding..." : "Add Student"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
+
 
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="flex-1">
@@ -451,6 +588,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
             </Select>
           </div>
 
+
           {loading && students.length === 0 ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -470,6 +608,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                 <TabsTrigger value="cards">Card View</TabsTrigger>
               </TabsList>
 
+
               <TabsContent value="table">
                 <div className="rounded-md border">
                   <Table>
@@ -488,9 +627,18 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                     <TableBody>
                       {filteredStudents.length > 0 ? (
                         filteredStudents.map((student) => (
-                          <TableRow key={student.id}>
+                          <TableRow key={student.id} className={student.blocked ? "bg-red-50" : ""}>
                             <TableCell className="font-medium">{student.id.substring(0, 8)}</TableCell>
-                            <TableCell>{student.name}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {student.name}
+                                {student.blocked && (
+                                  <Badge variant="destructive" className="ml-1">
+                                    Blocked
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>{student.department}</TableCell>
                             <TableCell>{student.year}</TableCell>
                             <TableCell>{student.cgpa}</TableCell>
@@ -523,6 +671,17 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                                 >
                                   <i className="fa-solid fa-eye"></i>
                                   <span className="sr-only">View</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`h-8 w-8 p-0 ${student.blocked ? "text-green-500 hover:text-green-600" : "text-amber-500 hover:text-amber-600"}`}
+                                  onClick={() => handleToggleBlockStudent(student)}
+                                  disabled={loading}
+                                  title={student.blocked ? "Unblock Student" : "Block Student"}
+                                >
+                                  {student.blocked ? <Unlock size={16} /> : <Lock size={16} />}
+                                  <span className="sr-only">{student.blocked ? "Unblock" : "Block"}</span>
                                 </Button>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
@@ -570,11 +729,15 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                 </div>
               </TabsContent>
 
+
               <TabsContent value="cards">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredStudents.length > 0 ? (
                     filteredStudents.map((student) => (
-                      <Card key={student.id} className="overflow-hidden">
+                      <Card
+                        key={student.id}
+                        className={`overflow-hidden ${student.blocked ? "border-red-300 bg-red-50" : ""}`}
+                      >
                         <div className="p-6">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-4">
@@ -587,7 +750,14 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                                 </div>
                               </Avatar>
                               <div>
-                                <h3 className="font-semibold">{student.name}</h3>
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-semibold">{student.name}</h3>
+                                  {student.blocked && (
+                                    <Badge variant="destructive" className="ml-1">
+                                      Blocked
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-sm text-gray-500">{student.department}</p>
                               </div>
                             </div>
@@ -626,36 +796,52 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                             >
                               View Profile
                             </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-500 hover:text-red-600"
-                                  disabled={loading}
-                                >
-                                  <i className="fa-solid fa-trash mr-1"></i>
-                                  Delete
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete {student.name}'s profile and cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    className="bg-red-500 hover:bg-red-600"
-                                    onClick={() => handleDeleteStudent(student.id)}
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className={student.blocked ? "text-green-500" : "text-amber-500"}
+                                onClick={() => handleToggleBlockStudent(student)}
+                                disabled={loading}
+                              >
+                                {student.blocked ? (
+                                  <Unlock size={14} className="mr-1" />
+                                ) : (
+                                  <Lock size={14} className="mr-1" />
+                                )}
+                                {student.blocked ? "Unblock" : "Block"}
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-red-500 hover:text-red-600"
+                                    disabled={loading}
                                   >
+                                    <i className="fa-solid fa-trash mr-1"></i>
                                     Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete {student.name}'s profile and cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="bg-red-500 hover:bg-red-600"
+                                      onClick={() => handleDeleteStudent(student.id)}
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </div>
                         </div>
                       </Card>
@@ -673,6 +859,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
         </div>
       </Card>
 
+
       {/* Student Detail Dialog */}
       {selectedStudent && (
         <Dialog open={!!selectedStudent} onOpenChange={(open) => !open && setSelectedStudent(null)}>
@@ -685,6 +872,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="edit">Edit Profile</TabsTrigger>
               </TabsList>
+
 
               <TabsContent value="overview">
                 <div className="grid md:grid-cols-3 gap-6">
@@ -700,9 +888,12 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                       </Avatar>
                       <h3 className="text-xl font-semibold mb-1">{selectedStudent.name}</h3>
                       <p className="text-gray-500 mb-2">{selectedStudent.department}</p>
-                      <Badge className="mb-4" variant={selectedStudent.status === "Active" ? "default" : "secondary"}>
-                        {selectedStudent.status}
-                      </Badge>
+                      <div className="flex gap-2 mb-4">
+                        <Badge variant={selectedStudent.status === "Active" ? "default" : "secondary"}>
+                          {selectedStudent.status}
+                        </Badge>
+                        {selectedStudent.blocked && <Badge variant="destructive">Blocked</Badge>}
+                      </div>
                       <div className="w-full">
                         <div className="bg-gray-100 p-4 rounded-lg mb-4">
                           <p className="text-sm text-gray-600">ID: {selectedStudent.id.substring(0, 8)}...</p>
@@ -757,6 +948,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                   </div>
                 </div>
               </TabsContent>
+
 
               <TabsContent value="edit">
                 <ScrollArea className="h-[500px] pr-4">
@@ -1003,6 +1195,28 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="edit-blocked" className="text-right">
+                        Block Status
+                      </Label>
+                      <Select
+                        value={selectedStudent.blocked ? "blocked" : "active"}
+                        onValueChange={(value) =>
+                          setSelectedStudent({
+                            ...selectedStudent,
+                            blocked: value === "blocked",
+                          })
+                        }
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select Block Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="blocked">Blocked</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </ScrollArea>
                 <DialogFooter>
@@ -1021,4 +1235,8 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ profileData, set
     </div>
   )
 }
+
+
+
+
 
