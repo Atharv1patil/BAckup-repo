@@ -25,7 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, unreadCount 
   const navItems = [
     { id: "dashboard", icon: "fa-solid fa-house", label: "Dashboard" },
     { id: "profile", icon: "fa-solid fa-user", label: "Edit Profile" },
-    { id: "placement", icon: "fa-solid fa-chart-line", label: "Placement Overview" },
+    // { id: "placement", icon: "fa-solid fa-chart-line", label: "Placement Overview" },
     { id: "skills", icon: "fa-solid fa-lightbulb", label: "Skill Recommendations" },
     { id: "notifications", icon: "fa-solid fa-bell", label: "Notifications", badge: unreadCount },
   ]

@@ -23,12 +23,12 @@ const PlacementOverview = () => {
     salaryTrends: [],
   });
 
-  const userData: UserData = JSON.parse(localStorage.getItem('userData') || '{}');
+//   const userData: UserData = JSON.parse(localStorage.getItem('userData') || '{}');
 
-const major1 = userData?.profile?.major;
+// const major1 = userData?.profile?.major;
   useEffect(() => {
     axios
-      .get(`http://localhost:5000/placement/${major1}`)
+      .get(`http://localhost:5000/placement/${major}`)
       .then((response) => {
         console.log("Fetched placement data:", response.data);
         setPlacementData(response.data);
@@ -41,7 +41,7 @@ const major1 = userData?.profile?.major;
       <h2 className="text-xl font-bold mb-4">Placement Overview</h2>
       
       <div className="mb-4">
-        {/* <select
+        <select
           className="p-2 border rounded-md"
           value={major}
           onChange={(e) => setMajor(e.target.value)}
@@ -49,7 +49,7 @@ const major1 = userData?.profile?.major;
           <option value="Computer Science">Computer Science</option>
           <option value="Mechanical Engineering">Mechanical Engineering</option>
           <option value="Electrical Engineering">Electrical Engineering</option>
-        </select> */}
+        </select>
       </div>
 
       <StatCards data={placementData} />

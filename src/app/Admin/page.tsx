@@ -4,7 +4,7 @@ import { Sidebar } from "./componets/sidebar1"
 import { Header } from "./componets/header1"
 import { Dashboard } from "./componets/dashboard1"
 import { Notifications } from "./componets/notifications1"
-import { Jobs } from"./componets/jobs1"
+import Jobs from "./componets/jobs1"
 import { StudentProfile } from "./componets/student-profile1"
 import type { NotificationType } from "../../../types1"
 

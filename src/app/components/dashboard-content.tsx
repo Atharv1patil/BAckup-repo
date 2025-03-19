@@ -1,11 +1,18 @@
 "use client"
 
 import type React from "react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import * as echarts from "echarts"
+import axios from "axios"
+
+type UserData = {
+  profile: {
+    major: string;
+  };
+};
 
 const recentActivities = [
   {
@@ -26,111 +33,147 @@ const recentActivities = [
 ]
 
 const DashboardContent: React.FC = () => {
+  // State to store data fetched from the backend
+  const [placementData, setPlacementData] = useState<any[]>([])
+  const [pieData, setPieData] = useState<{ placedStudents: number; totalStudents: number } | null>(null)
+  // Set the branch to fetch data for
+  const branch = "Computer Science"
+
+  // Fetch dynamic data on mount
   useEffect(() => {
-    initCharts()
-    return cleanupCharts
+    fetchPlacementData()
+    fetchPieData()
   }, [])
 
-  // Updated chart initialization code
-const initCharts = () => {
-  const chartDom = document.getElementById("placementChart");
-  const pieChartDom = document.getElementById("placementPieChart");
+  // Initialize charts when data is available
+  useEffect(() => {
+    if (placementData.length && pieData) {
+      initCharts()
+    }
+    return cleanupCharts
+  }, [placementData, pieData])
 
-  // Line Chart - Placements Over Years
-  if (chartDom) {
-    const myChart = echarts.init(chartDom);
-    const option = {
-      title: {
-        text: "Placements by Year",
-        left: "center"
-      },
-      tooltip: {
-        trigger: "axis",
-        formatter: "Year: {b}<br />Placed Students: {c}"
-      },
-      xAxis: {
-        type: "category",
-        data: ["2019", "2020", "2021", "2022", "2023"],
-        name: "Academic Year"
-      },
-      yAxis: {
-        type: "value",
-        name: "Students Placed"
-      },
-      series: [{
-        data: [120, 145, 165, 210, 240],
-        type: "line",
-        smooth: true,
-        color: "#2563eb",
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: "rgba(37, 99, 235, 0.8)" },
-            { offset: 1, color: "rgba(37, 99, 235, 0.1)" }
-          ])
-        }
-      }]
-    };
-    myChart.setOption(option);
+  const fetchPlacementData = async () => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/placement-past/Computer Science`)
+      setPlacementData(response.data)
+    } catch (error) {
+      console.error("Error fetching placement data:", error)
+    }
+  }
+  const userData: UserData = JSON.parse(localStorage.getItem('userData')!);
+  // console.log(userData.profile.major);
+
+  const major1 = userData?.profile?.major;
+
+  const fetchPieData = async () => {
+    try {
+      const response = await axios.get(`http://localhost:5000/student-stats/pie/${major1}`)
+      setPieData(response.data)
+    } catch (error) {
+      console.error("Error fetching pie chart data:", error)
+    }
   }
 
-  // Pie Chart - Placement Status
-  if (pieChartDom) {
-    const pieChart = echarts.init(pieChartDom);
-    const pieOption = {
-      title: {
-        text: "Placement Status",
-        left: "center"
-      },
-      tooltip: {
-        trigger: "item",
-        formatter: "{b}: {c} ({d}%)"
-      },
-      legend: {
-        orient: "vertical",
-        right: 10,
-        top: "center"
-      },
-      series: [{
-        type: "pie",
-        radius: ["40%", "70%"],
-        data: [
-          { 
-            value: 320, 
-            name: "Placed Students",
-            itemStyle: { color: "#2563eb" }
-          },
-          { 
-            value: 120, 
-            name: "Not Placed",
-            itemStyle: { color: "#ef4444" }
-          }
-        ],
-        // label: {
-        //   show: true,
-        //   formatter: "{b}: {d}%"
-        // },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: "rgba(0, 0, 0, 0.5)"
-          }
-        }
-      }]
-    };
-    pieChart.setOption(pieOption);
-  }
-}
-
-  const cleanupCharts = () => {
+  // Initialize charts with dynamic data
+  const initCharts = () => {
     const chartDom = document.getElementById("placementChart")
     const pieChartDom = document.getElementById("placementPieChart")
 
+    // Line Chart - Placements Over Years
+    if (chartDom) {
+      const myChart = echarts.init(chartDom)
+      const option = {
+        title: {
+          text: "Placements by Year",
+          left: "center",
+        },
+        tooltip: {
+          trigger: "axis",
+          formatter: "Year: {b}<br />Placed Students: {c}",
+        },
+        xAxis: {
+          type: "category",
+          data: placementData.map((item) => item.academicYear),
+          name: "Academic Year",
+        },
+        yAxis: {
+          type: "value",
+          name: "Students Placed",
+        },
+        series: [
+          {
+            data: placementData.map((item) => item.placedStudents),
+            type: "line",
+            smooth: true,
+            color: "#2563eb",
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: "rgba(37, 99, 235, 0.8)" },
+                { offset: 1, color: "rgba(37, 99, 235, 0.1)" },
+              ]),
+            },
+          },
+        ],
+      }
+      myChart.setOption(option)
+    }
+
+    // Pie Chart - Placement Status
+    if (pieChartDom && pieData) {
+      const pieChart = echarts.init(pieChartDom)
+      const pieOption = {
+        title: {
+          text: "Placement Status",
+          left: "center",
+        },
+        tooltip: {
+          trigger: "item",
+          formatter: "{b}: {c} ({d}%)",
+        },
+        legend: {
+          orient: "vertical",
+          right: 10,
+          top: "center",
+        },
+        series: [
+          {
+            type: "pie",
+            radius: ["40%", "70%"],
+            data: [
+              {
+                value: pieData.placedStudents,
+                name: "Placed Students",
+                itemStyle: { color: "#2563eb" },
+              },
+              {
+                value: pieData.totalStudents - pieData.placedStudents,
+                name: "Not Placed",
+                itemStyle: { color: "#ef4444" },
+              },
+            ],
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: "rgba(0, 0, 0, 0.5)",
+              },
+            },
+          },
+        ],
+      }
+      pieChart.setOption(pieOption)
+    }
+  }
+
+  // Dispose of charts on cleanup
+  const cleanupCharts = () => {
+    const chartDom = document.getElementById("placementChart")
+    const pieChartDom = document.getElementById("placementPieChart")
     if (chartDom) {
       const myChart = echarts.getInstanceByDom(chartDom)
       myChart?.dispose()
     }
-
     if (pieChartDom) {
       const pieChart = echarts.getInstanceByDom(pieChartDom)
       pieChart?.dispose()
@@ -145,7 +188,7 @@ const initCharts = () => {
         <div className="grid grid-cols-2 gap-6">
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Placement Progress</h3>
-            <div id="placementChart" style={{ height: "300px" }}></div>
+            <div id="placementChart" style={{ height: "300px"  }}></div>
           </Card>
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Placement Distribution</h3>
@@ -205,4 +248,3 @@ const StatCards: React.FC = () => {
 }
 
 export default DashboardContent
-
