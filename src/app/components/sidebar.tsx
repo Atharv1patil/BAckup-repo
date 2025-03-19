@@ -11,6 +11,14 @@ interface SidebarProps {
   unreadCount: number
 }
 
+interface UserData {
+  profile: {
+    firstName: string
+    lastName: string
+    major: string
+  }
+}
+
 const studentImage = "https://public.readdy.ai/ai/img_res/84e10cf703b2fe4ca541bc42e95edcfa.jpg"
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, unreadCount }) => {
@@ -22,14 +30,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, unreadCount 
     { id: "notifications", icon: "fa-solid fa-bell", label: "Notifications", badge: unreadCount },
   ]
 
+  const userData: UserData = JSON.parse(localStorage.getItem('userData') || '{}');
+  const fullName = `${userData?.profile?.firstName} ${userData?.profile?.lastName}`;
+
+const major1 = userData?.profile?.major;
+
   return (
     <div className="fixed w-64 h-screen bg-[#1a1a1a] text-white p-6">
       <div className="flex flex-col items-center mb-8">
         <Avatar className="w-20 h-20 mb-4">
           <img src={studentImage || "/placeholder.svg"} alt="Student" className="object-cover" />
         </Avatar>
-        <h3 className="text-lg font-semibold">Alexander Thompson</h3>
-        <p className="text-sm text-gray-400">Computer Science</p>
+        <h3 className="text-lg font-semibold">{fullName}</h3>
+        <p className="text-sm text-gray-400">{major1}</p>
       </div>
 
       <nav className="space-y-2">

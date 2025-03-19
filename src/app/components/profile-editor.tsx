@@ -10,6 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
+type UserData = {
+  auth: {
+    email: string;
+    role: string;
+  };
+};
+
 const studentImage = "https://public.readdy.ai/ai/img_res/84e10cf703b2fe4ca541bc42e95edcfa.jpg";
 const API_URL = "http://localhost:5000/profile"; // Flask API URL
 
@@ -27,8 +34,23 @@ const ProfileEditor: React.FC = () => {
     bio: "",
     publicProfile: true,
   });
+  const [userData, setUserData] = useState<UserData | null>(null);
+  
+  useEffect(() => {
+    const data = localStorage.getItem('userData');
+    if (data) {
+      const parsedData: UserData = JSON.parse(data);
+      setUserData(parsedData);
+      setEmail(parsedData.auth.email); // Set email here
+    }
+  }, []);
 
   const [newSkill, setNewSkill] = useState("");
+//   const userData: UserData = JSON.parse(localStorage.getItem('userData')!);
+
+//   console.log(userData.auth.email);
+// console.log(userData.auth.role);
+// setEmail(userData.auth.email);
 
   // Fetch profile data from backend when email is entered
   const fetchProfile = () => {
@@ -88,9 +110,9 @@ const ProfileEditor: React.FC = () => {
     <div className="max-w-4xl mx-auto py-8">
       <Card className="p-8">
         <div className="mb-6">
-          <Label htmlFor="emailFetch">Enter Email to Fetch Profile</Label>
+          {/* <Label htmlFor="emailFetch">Enter Email to Fetch Profile</Label> */}
           <div className="flex gap-2">
-            <Input id="emailFetch" value={email} onChange={(e) => setEmail(e.target.value)} />
+            {/* <Input id="emailFetch" value={email} onChange={(e) => setEmail(e.target.value)} /> */}
             <Button onClick={fetchProfile}>Fetch</Button>
           </div>
         </div>

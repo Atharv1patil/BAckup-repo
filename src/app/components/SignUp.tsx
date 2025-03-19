@@ -1,5 +1,5 @@
-// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 "use client";
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,19 +7,22 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
-import { Alert } from "@/components/ui/alert";
-const App: React.FC = () => {
+
+const SignUp: React.FC = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
+    role: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [serverMessage, setServerMessage] = useState("");
+
   const calculatePasswordStrength = (password: string): number => {
     let strength = 0;
     if (password.length >= 8) strength += 25;
@@ -28,6 +31,7 @@ const App: React.FC = () => {
     if (/[!@#$%^&*]/.test(password)) strength += 25;
     return strength;
   };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.fullName.trim()) {
@@ -37,6 +41,9 @@ const App: React.FC = () => {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Please enter a valid email";
+    }
+    if (!formData.role) {
+      newErrors.role = "Please select a role";
     }
     if (!formData.password) {
       newErrors.password = "Password is required";
@@ -52,20 +59,51 @@ const App: React.FC = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
     setIsLoading(true);
+    setServerMessage("");
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log("Form submitted:", formData);
+      const payload = {
+        Fullname: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+      };
+
+      const response = await fetch("http://localhost:5000/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setServerMessage(result.message);
+        // Optionally reset form here
+        setFormData({
+          fullName: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          agreeToTerms: false,
+          role: "",
+        });
+      } else {
+        setServerMessage(result.error);
+      }
     } catch (error) {
-      console.error("Submission error:", error);
+      setServerMessage("An error occurred during registration.");
     } finally {
       setIsLoading(false);
     }
   };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -77,7 +115,6 @@ const App: React.FC = () => {
     }
   };
 
-  
   return (
     <div
       className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center"
@@ -134,6 +171,36 @@ const App: React.FC = () => {
             )}
           </div>
           <div>
+            <Label>Role</Label>
+            <div className="flex gap-6 mt-2">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="admin"
+                  checked={formData.role === "admin"}
+                  onChange={handleChange}
+                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm">Administrator</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="student"
+                  checked={formData.role === "student"}
+                  onChange={handleChange}
+                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm">Student</span>
+              </label>
+            </div>
+            {errors.role && (
+              <p className="text-red-500 text-sm mt-1">{errors.role}</p>
+            )}
+          </div>
+          <div>
             <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Input
@@ -150,9 +217,7 @@ const App: React.FC = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer"
               >
-                <i
-                  className={`fa ${showPassword ? "fa-eye-slash" : "fa-eye"}`}
-                ></i>
+                <i className={`fa ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
               </button>
             </div>
             {formData.password && (
@@ -162,8 +227,7 @@ const App: React.FC = () => {
                   className="h-2"
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  Password strength:{" "}
-                  {calculatePasswordStrength(formData.password)}%
+                  Password strength: {calculatePasswordStrength(formData.password)}%
                 </p>
               </div>
             )}
@@ -181,26 +245,18 @@ const App: React.FC = () => {
                 placeholder="Confirm your password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`mt-1 ${
-                  errors.confirmPassword ? "border-red-500" : ""
-                }`}
+                className={`mt-1 ${errors.confirmPassword ? "border-red-500" : ""}`}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer"
               >
-                <i
-                  className={`fa ${
-                    showConfirmPassword ? "fa-eye-slash" : "fa-eye"
-                  }`}
-                ></i>
+                <i className={`fa ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.confirmPassword}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
             )}
           </div>
           <div className="flex items-start">
@@ -229,6 +285,9 @@ const App: React.FC = () => {
           </div>
           {errors.terms && (
             <p className="text-red-500 text-sm">{errors.terms}</p>
+          )}
+          {serverMessage && (
+            <p className="text-center text-sm text-green-600">{serverMessage}</p>
           )}
           <Button
             type="submit"
@@ -266,4 +325,5 @@ const App: React.FC = () => {
     </div>
   );
 };
-export default App;
+
+export default SignUp;

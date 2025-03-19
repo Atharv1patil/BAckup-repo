@@ -12,11 +12,22 @@ import ProfileEditor from "../components/profile-editor"
 import NotificationsPopup from "../components/notifications-popup"
 import { useNotifications } from "../hooks/use-notifications"
 
+interface UserData {
+  auth: {
+    email: string;
+    role: string;
+  };
+}
+
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [showNotifications, setShowNotifications] = useState(false)
   const { notifications, markNotificationAsRead, markAllAsRead, unreadCount } = useNotifications()
+  const userData: UserData = JSON.parse(localStorage.getItem('userData')!);
 
+// Access authentication info
+console.log(userData.auth.email);
+console.log(userData.auth.role);
   const renderContent = () => {
     switch (activeTab) {
       case "placement":

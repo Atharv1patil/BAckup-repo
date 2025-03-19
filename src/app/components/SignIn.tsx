@@ -1,6 +1,6 @@
-// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 "use client"
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,23 +9,67 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const App: React.FC = () => {
+const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('student');
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-    // Handle login logic here
     setError('');
+    setIsLoading(true);
+
+    try {
+      // Step 1: Perform login authentication
+      const loginResponse = await fetch('http://localhost:5000/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email, password, role }),
+      });
+
+      const loginData = await loginResponse.json();
+      if (!loginResponse.ok) throw new Error(loginData.error || 'Login failed');
+
+      // Step 2: Fetch complete user profile data
+      const profileResponse = await fetch(`http://localhost:5000/profile/${loginData.user.email}`);
+      const profileData = await profileResponse.json();
+      
+      // Step 3: Combine and store user data
+      const completeUserData = {
+        auth: loginData.user,
+        profile: profileResponse.ok ? profileData : null
+      };
+      
+      localStorage.setItem('userData', JSON.stringify(completeUserData));
+
+      // Step 4: Handle role-based redirection
+      switch(loginData.user.role.toLowerCase()) {
+        case 'student':
+          router.push('/Student');
+          break;
+        case 'admin':
+          router.push('/Admin');
+          break;
+        case 'recruiter':
+          router.push('/recruiter-dashboard');
+          break;
+        default:
+          router.push('/');
+      }
+
+    } catch (err) {
+      setError(err.message);
+      localStorage.removeItem('userData');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen flex bg-white">
@@ -75,6 +119,7 @@ const App: React.FC = () => {
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -90,6 +135,7 @@ const App: React.FC = () => {
                   className="pl-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
                 <button
                   type="button"
@@ -101,7 +147,12 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <RadioGroup value={role} onValueChange={setRole} className="flex gap-6">
+            <RadioGroup 
+              value={role} 
+              onValueChange={setRole} 
+              className="flex gap-6"
+              required
+            >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="student" id="student" />
                 <Label htmlFor="student">Student</Label>
@@ -133,14 +184,15 @@ const App: React.FC = () => {
             <Button
               type="submit"
               className="w-full bg-[#1a237e] hover:bg-[#1a237e]/90 text-white !rounded-button"
+              disabled={isLoading}
             >
-              Sign In
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
 
           <div className="text-center text-sm">
             <span className="text-gray-600">Don't have an account? </span>
-            <a href="#" className="text-[#1a237e] hover:underline font-medium">
+            <a href="/SignUp" className="text-[#1a237e] hover:underline font-medium">
               Sign up now
             </a>
           </div>
@@ -150,4 +202,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default LoginPage;

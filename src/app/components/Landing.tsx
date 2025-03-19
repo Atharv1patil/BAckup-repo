@@ -9,6 +9,8 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
+import SignIN from "./SignIn";
+import Link from "next/link";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faHome,
@@ -24,6 +26,7 @@ import {
 
 } from '@fortawesome/free-solid-svg-icons';
 import { faInstagram, faLinkedinIn, faXTwitter, faFacebookF, } from '@fortawesome/free-brands-svg-icons';
+
 
 const Landing: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -106,10 +109,12 @@ const Landing: React.FC = () => {
               <FontAwesomeIcon icon={faEnvelope} className="text-blue-500 w-5 h-5" />
               <span className="font-medium">Contact</span>
             </button>
-            <Button className="!rounded-button whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
-              <FontAwesomeIcon icon={faSignInAlt} className="w-5 h-5" />
-              <span>Login</span>
-            </Button>
+            <Link href="/SignIn">
+              <Button className="!rounded-button whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+                <FontAwesomeIcon icon={faSignInAlt} className="w-5 h-5" />
+                <span>Login</span>
+              </Button>
+              </Link>
           </nav>
           <button
             className="md:hidden"
@@ -319,13 +324,13 @@ const Landing: React.FC = () => {
                 <h4 className="font-semibold mb-4">Follow Us</h4>
                 <div className="flex space-x-4">
                   <a href="#" className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors">
-                  <FontAwesomeIcon icon={faFacebookF} />
+                    <FontAwesomeIcon icon={faFacebookF} />
                   </a>
                   <a href="#" className="w-10 h-10 bg-blue-400 text-white rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors">
-                  <FontAwesomeIcon icon={faLinkedinIn} />
+                    <FontAwesomeIcon icon={faLinkedinIn} />
                   </a>
                   <a href="#" className="w-10 h-10 bg-blue-800 text-white rounded-full flex items-center justify-center hover:bg-blue-900 transition-colors">
-                  <FontAwesomeIcon icon={faInstagram} />
+                    <FontAwesomeIcon icon={faInstagram} />
                   </a>
                 </div>
               </div>

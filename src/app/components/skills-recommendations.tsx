@@ -13,16 +13,24 @@ interface Skill {
   courseLink: string
 }
 
+interface UserData {
+  auth: {
+    email: string
+  }
+}
+
 const SkillsRecommendations: React.FC = () => {
   const [selectedSkillCategory, setSelectedSkillCategory] = useState("technical")
   const [skillsData, setSkillsData] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
-
+  const userData: UserData = JSON.parse(localStorage.getItem('userData') || '{}');
+   
   useEffect(() => {
     const fetchSkills = async () => {
       try {
         // Replace with dynamic email if needed
-        const response = await fetch('http://127.0.0.1:5000/profile-ai/johndoe@example.com')
+        const email = userData.auth.email // Replace with dynamic email if needed
+        const response = await fetch(`http://127.0.0.1:5000/profile-ai/${email}`)
         const data = await response.json()
         setSkillsData(data.recommended_skills)
       } catch (error) {
